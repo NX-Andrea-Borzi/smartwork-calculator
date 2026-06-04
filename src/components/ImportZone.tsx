@@ -15,7 +15,7 @@ export function ImportZone({ onFiles, loading = false }: ImportZoneProps) {
     e.preventDefault()
     setDragging(false)
     const files = Array.from(e.dataTransfer.files).filter(f =>
-      f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
+      /\.(xlsx|xls|json)$/i.test(f.name)
     )
     if (files.length > 0) onFiles(files)
   }
@@ -44,7 +44,7 @@ export function ImportZone({ onFiles, loading = false }: ImportZoneProps) {
       <input
         ref={inputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.json"
         multiple
         className="hidden"
         onChange={handleChange}
@@ -65,8 +65,8 @@ export function ImportZone({ onFiles, loading = false }: ImportZoneProps) {
           </>
         ) : (
           <>
-            <span className="text-sky-400 font-semibold">+ Carica file Excel</span>
-            {' — '}trascina qui uno o più <code className="text-slate-300">.xlsx</code> / <code className="text-slate-300">.xls</code> oppure clicca
+            <span className="text-sky-400 font-semibold">+ Carica file</span>
+            {' — '}trascina qui uno o più <code className="text-slate-300">.xlsx</code> / <code className="text-slate-300">.xls</code> o un backup <code className="text-slate-300">.json</code> oppure clicca
           </>
         )}
       </div>
