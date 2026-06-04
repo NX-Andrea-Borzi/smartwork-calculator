@@ -81,6 +81,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
   }, [open])
 
   function handleOpenChange(v: boolean) {
+    if (v) setSaveError(null)
     setOpen(v)
   }
 
@@ -104,8 +105,18 @@ export function ExcludedDatesModal({ onSaved }: Props) {
     if (!file) return
     e.target.value = ''
 
-    const newDates = await readFutureDatesFromExcel(file)
-    if (newDates.length === 0) return
+    setSaveError(null)
+    let newDates: string[]
+    try {
+      newDates = await readFutureDatesFromExcel(file)
+    } catch {
+      setSaveError('File Excel non valido o illeggibile.')
+      return
+    }
+    if (newDates.length === 0) {
+      setSaveError('Nessun giorno lavorativo futuro trovato nel file.')
+      return
+    }
 
     setRows(prev => {
       const existing = new Set(expandToWorkingDays(prev))
@@ -145,7 +156,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
         <CalendarDays className="size-4 mr-2" color="currentColor" />
         Escludi date
       </Button>
@@ -165,6 +176,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
               <div className="flex rounded-md overflow-hidden border border-border text-xs shrink-0">
                 <button
                   type="button"
+                  aria-pressed={row.mode === 'single'}
                   onClick={() => updateRow(row.id, { mode: 'single', end: '' })}
                   className={`px-2 py-1 transition-colors ${row.mode === 'single' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}
                 >
@@ -172,6 +184,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
                 </button>
                 <button
                   type="button"
+                  aria-pressed={row.mode === 'range'}
                   onClick={() => updateRow(row.id, { mode: 'range' })}
                   className={`px-2 py-1 transition-colors ${row.mode === 'range' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}`}
                 >
@@ -181,6 +194,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
 
               <input
                 type="date"
+                aria-label={row.mode === 'range' ? 'Data inizio' : 'Data da escludere'}
                 value={row.start}
                 min={minDate}
                 onChange={e => updateRow(row.id, { start: e.target.value })}
@@ -189,9 +203,10 @@ export function ExcludedDatesModal({ onSaved }: Props) {
 
               {row.mode === 'range' && (
                 <>
-                  <span className="text-muted-foreground text-xs shrink-0">→</span>
+                  <span className="text-muted-foreground text-xs shrink-0" aria-hidden="true">→</span>
                   <input
                     type="date"
+                    aria-label="Data fine"
                     value={row.end}
                     min={row.start || minDate}
                     onChange={e => updateRow(row.id, { end: e.target.value })}
@@ -203,6 +218,7 @@ export function ExcludedDatesModal({ onSaved }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
+                aria-label="Rimuovi riga"
                 onClick={() => removeRow(row.id)}
                 className="shrink-0 text-muted-foreground hover:text-destructive"
               >
