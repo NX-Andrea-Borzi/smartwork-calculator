@@ -85,6 +85,27 @@ export default function DashboardPage() {
     setImportError(null)
   }
 
+  const submitImport = useCallback(async (
+    rows: ReturnType<typeof parseExcelBuffers>['rows'],
+    overrides: Record<string, DayClassification>,
+    filenames: string[]
+  ) => {
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows, overrides, filenames }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setImportError(data.error ?? 'Errore durante l\'import.')
+      setLoading(false)
+      return
+    }
+    const [rec, pref, excl] = await fetchAllState()
+    applyLoadedState(rec, pref, excl)
+    setLoading(false)
+  }, [applyLoadedState])
+
   const handleFiles = useCallback(async (files: File[]) => {
     setImportError(null)
 
@@ -126,7 +147,7 @@ export default function DashboardPage() {
       setImportError(e instanceof Error ? e.message : 'Errore durante l\'import.')
       setLoading(false)
     }
-  }, [])
+  }, [submitImport])
 
   async function handleResolveAnomalies(overrides: Record<string, DayClassification>) {
     if (!pendingRows) return
@@ -135,42 +156,6 @@ export default function DashboardPage() {
     await submitImport(pendingRows, overrides, pendingFilenames)
     setPendingRows(null)
     setPendingFilenames([])
-  }
-
-  async function submitImport(
-    rows: ReturnType<typeof parseExcelBuffers>['rows'],
-    overrides: Record<string, DayClassification>,
-    filenames: string[]
-  ) {
-    const res = await fetch('/api/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rows, overrides, filenames }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      setImportError(data.error ?? 'Errore durante l\'import.')
-      setLoading(false)
-      return
-    }
-    const [recRes, exclRes] = await Promise.all([
-      fetch('/api/data'),
-      fetch('/api/excluded-dates'),
-    ])
-    const rec: Records | null = await recRes.json()
-    const excl: string[] = await exclRes.json()
-    setRecords(rec)
-    setExcludedDates(excl)
-    if (rec) {
-      const years = availableYearsFrom(rec)
-      const currentYear = new Date().getFullYear()
-      setSelectedYear(prev =>
-        years.includes(prev) ? prev :
-        years.includes(currentYear) ? currentYear :
-        years[years.length - 1] ?? prev
-      )
-    }
-    setLoading(false)
   }
 
   async function confirmRestore() {
