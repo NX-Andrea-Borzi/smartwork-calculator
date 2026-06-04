@@ -51,3 +51,11 @@ export function deleteRecords(): void {
     // file already absent — no-op
   }
 }
+
+// Atomically-ish replaces the whole persisted state from a validated backup.
+// A null records section means "no employee data" → clear records.json.
+export function restoreBackup(records: Records | null, prefs: Prefs): void {
+  if (records) writeRecords(records)
+  else deleteRecords()
+  writePrefs(prefs)
+}
